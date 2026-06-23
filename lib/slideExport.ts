@@ -400,7 +400,7 @@ export async function buildExportSlideElement(
   const maxTextHeight = Math.round(height * EXPORT_TEXT_MAX_HEIGHT_RATIO)
   const textContainer = document.createElement('div')
   textContainer.setAttribute('data-slide-text-box', '')
-  textContainer.style.cssText = `position:relative;z-index:2;width:100%;max-height:${maxTextHeight}px;box-sizing:border-box;text-align:${textStyle.textAlign};display:flex;flex-direction:column;gap:${Math.round(exportFontSize * 0.6)}px;align-items:${textStyle.textAlign === 'center' ? 'center' : textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start'};overflow-y:auto;overflow-x:hidden;`
+  textContainer.style.cssText = `position:relative;z-index:2;width:100%;max-height:${maxTextHeight}px;box-sizing:border-box;text-align:${textStyle.textAlign};display:flex;flex-direction:column;gap:${Math.round(exportFontSize * 0.6)}px;align-items:${textStyle.textAlign === 'center' ? 'center' : textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start'};overflow:visible;`
 
   // Split by paragraph breaks (double newline or more)
   const paragraphs = slide.text
