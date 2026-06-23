@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
-import { FONT_OPTIONS, getFontFamily } from '@/lib/fonts'
+import { FONT_OPTIONS, getFontFamily, forceLoadFont } from '@/lib/fonts'
 import { drawRunningTextFrame } from '@/lib/storyRunningTextRender'
 import { exportRunningTextToMp4, getSpeedPxPerSec } from '@/lib/storyRunningTextExport'
 
@@ -66,6 +66,11 @@ export default function StoryPromptPage() {
   useEffect(() => { highlightColorRef.current = highlightColor }, [highlightColor])
   useEffect(() => { isPlayingRef.current = isPlaying }, [isPlaying])
   useEffect(() => { speedRef.current = speed }, [speed])
+
+  // Pre-load custom font at weight 400 for canvas preview
+  useEffect(() => {
+    forceLoadFont(fontFamily, 400)
+  }, [fontFamily])
 
   // Process and cache background image
   useEffect(() => {
@@ -237,9 +242,6 @@ export default function StoryPromptPage() {
             <h1 className="font-serif text-3xl font-semibold text-white tracking-tight leading-none">
               Video Running Text
             </h1>
-            <p className="text-xs text-slate-400 font-medium mt-1.5 uppercase tracking-wider">
-              Rebuild: Perbaikan bug tombol generate dan resolusi video.
-            </p>
           </div>
         </div>
 
@@ -423,8 +425,8 @@ export default function StoryPromptPage() {
                     type="button"
                     onClick={() => setHighlightType(type)}
                     className={`flex-1 py-2 text-center text-[10px] font-bold rounded-lg transition-all ${highlightType === type
-                        ? 'bg-cyan-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
                       }`}
                   >
                     {type === 'none' ? 'TANPA' : type.toUpperCase()}
@@ -470,8 +472,8 @@ export default function StoryPromptPage() {
                     type="button"
                     onClick={() => setVideoResolution(res)}
                     className={`flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all ${videoResolution === res
-                        ? 'bg-cyan-600 text-white shadow-sm'
-                        : 'text-slate-400 hover:text-slate-200'
+                      ? 'bg-cyan-600 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
                       }`}
                   >
                     {res}

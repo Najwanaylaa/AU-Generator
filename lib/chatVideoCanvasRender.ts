@@ -56,15 +56,15 @@ export function getChatLayoutMetrics(
     fontSize,
     metaFontSize: Math.max(14, Math.round(fontSize * 0.68)),
     paddingX: Math.round(16 * scale),
-    bubblePaddingH: Math.round(16 * scale),
-    bubblePaddingV: Math.round(12 * scale),
+    bubblePaddingH: Math.round(10 * scale),
+    bubblePaddingV: Math.round(8 * scale),
     bubbleRadius: Math.round(20 * scale),
-    bubbleInnerPad: Math.round(32 * scale),
+    bubbleInnerPad: Math.round(20 * scale),
     gap: Math.round(12 * scale),
     headerHeight: Math.round(Math.max(96, height * 0.072)),
     footerHeight: Math.round(Math.max(88, height * 0.065)),
     avatarSize: Math.round(44 * scale),
-    minBubbleWidth: Math.round(80 * scale),
+    minBubbleWidth: Math.round(48 * scale),
   }
 }
 
@@ -122,25 +122,31 @@ function measureBubble(
   const isUser = message.sender === 'user'
   const { fontSize, metaFontSize, bubblePaddingV } = metrics
 
+  // Measure text lines
   ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
   const lines = wrapTextLines(ctx, message.text, textMaxWidth)
   const lineHeight = fontSize * 1.45
   const textHeight = lines.length * lineHeight
-  const height = bubblePaddingV * 2 + textHeight + metaFontSize + 8
 
   let contentWidth = 0
   for (const line of lines) {
     contentWidth = Math.max(contentWidth, ctx.measureText(line).width)
   }
 
+  // Measure meta row: "20:25 ✓✓" for user, "20:25" for contact
   ctx.font = `${metaFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
   const timestampWidth = ctx.measureText(message.timestamp).width
-  const metaWidth = isUser ? timestampWidth + ctx.measureText('✓✓').width + 12 : timestampWidth
+  const ticksWidth = isUser ? ctx.measureText('✓✓').width + Math.round(6 * metrics.scale) : 0
+  const metaGap = Math.round(4 * metrics.scale)
+  const metaWidth = timestampWidth + ticksWidth + metaGap
 
+  // Bubble width = tightest fit around content, capped by maxBubbleWidth
   const width = Math.min(
     maxBubbleWidth,
     Math.max(metrics.minBubbleWidth, Math.max(contentWidth, metaWidth) + horizontalPadding)
   )
+
+  const height = bubblePaddingV * 2 + textHeight + metaFontSize + Math.round(6 * metrics.scale)
 
   return { width, height }
 }
@@ -275,6 +281,7 @@ function drawBubble(
   const isUser = bubble.sender === 'user'
   const { fontSize, metaFontSize, bubblePaddingH, bubblePaddingV, bubbleRadius } = metrics
 
+  // --- Draw bubble background ---
   ctx.save()
   roundRect(ctx, bubble.x, y, bubble.width, bubble.height, bubbleRadius)
   if (isUser) {
@@ -287,9 +294,11 @@ function drawBubble(
   }
   ctx.fill()
 
+  // --- Draw message text (top-aligned) ---
   ctx.font = `${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
   ctx.fillStyle = '#111827'
   ctx.textBaseline = 'top'
+  ctx.textAlign = 'left'
   const textMaxWidth = bubble.width - metrics.bubbleInnerPad
   const lines = wrapTextLines(ctx, bubble.text, textMaxWidth)
   const lineHeight = fontSize * 1.45
@@ -299,14 +308,32 @@ function drawBubble(
     textY += lineHeight
   }
 
+  // --- Draw meta row (timestamp + ticks) ---
   ctx.font = `${metaFontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
-  ctx.fillStyle = 'rgba(17,24,39,0.55)'
-  const metaY = y + bubble.height - bubblePaddingV - 2
-  ctx.fillText(bubble.timestamp, bubble.x + bubblePaddingH, metaY)
+  ctx.textBaseline = 'top'
+  const metaY = y + bubble.height - bubblePaddingV - metaFontSize
+  const rightEdge = bubble.x + bubble.width - bubblePaddingH
+
   if (isUser) {
+    // Right-align: ticks flush to right, timestamp just to the left of ticks
+    const ticksText = '✓✓'
+    const ticksWidth = ctx.measureText(ticksText).width
+    const gap = Math.round(4 * metrics.scale)
+
     ctx.fillStyle = '#34b7f1'
-    ctx.fillText('✓✓', bubble.x + bubble.width - bubblePaddingH - 22, metaY)
+    ctx.textAlign = 'left'
+    ctx.fillText(ticksText, rightEdge - ticksWidth, metaY)
+
+    ctx.fillStyle = 'rgba(17,24,39,0.55)'
+    ctx.fillText(bubble.timestamp, rightEdge - ticksWidth - gap - ctx.measureText(bubble.timestamp).width, metaY)
+  } else {
+    // Left-align timestamp
+    ctx.fillStyle = 'rgba(17,24,39,0.55)'
+    ctx.textAlign = 'left'
+    ctx.fillText(bubble.timestamp, bubble.x + bubblePaddingH, metaY)
   }
+
+  ctx.textAlign = 'left'
   ctx.restore()
 }
 

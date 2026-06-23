@@ -17,7 +17,9 @@ import {
   slideToImage,
   defaultSlideFileName,
   DEFAULT_SLIDE_OPTIONS,
+  getUniformFontSizeForSlides,
 } from '@/lib/slideExport'
+import { getEmbeddedFontCSS } from '@/lib/fonts'
 
 import { preloadImageDataUrls } from '@/lib/imageUtils'
 import { resolveProjectSettings } from '@/lib/projectSettings'
@@ -28,6 +30,7 @@ interface ExportPanelProps {
   imageUrls: string[]
   projectSettings?: ProjectSettings
   currentSlideIndex?: number
+  uniformFontSize?: number
 }
 
 type ExportFormat = 'png'
@@ -52,6 +55,7 @@ export default function ExportPanel({
   currentSlideIndex = 0,
   initialFormat,
   hideFormatSelector = false,
+  uniformFontSize,
 }: ExportPanelProps & ExportPanelExtraProps) {
   const [isExporting, setIsExporting] = useState(false)
   const [exportStatus, setExportStatus] = useState('')
@@ -84,8 +88,16 @@ export default function ExportPanel({
     imageDataUrls: string[],
     onStep: (step: number, total: number, label: string) => void
   ) => {
+    onStep(0, slides.length, 'Calculating consistent font sizes…')
+    const uniformFontSize = await getUniformFontSizeForSlides(slides, imageDataUrls, settings)
     const total = slides.length
     const images: Array<{ dataUrl: string; fileName: string }> = []
+
+    // Pre-fetch embedded font CSS once for the whole batch
+    const firstNonCover = slides.find((s) => !s.isCover)
+    const fontId = firstNonCover?.textStyle?.fontFamily || slides[0]?.textStyle?.fontFamily || 'poppins'
+    const fontWeight = firstNonCover?.textStyle?.fontWeight || slides[0]?.textStyle?.fontWeight || 900
+    const fontEmbedCSS = await getEmbeddedFontCSS(fontId, fontWeight)
 
     const tempContainer = document.createElement('div')
     tempContainer.style.cssText =
@@ -103,11 +115,12 @@ export default function ExportPanel({
           slide,
           imageDataUrl,
           { width: DEFAULT_SLIDE_OPTIONS.width, height: DEFAULT_SLIDE_OPTIONS.height },
-          settings
+          settings,
+          slide.isCover ? undefined : uniformFontSize
         )
         tempContainer.appendChild(slideEl)
 
-        const dataUrl = await slideToImage(slideEl)
+        const dataUrl = await slideToImage(slideEl, {}, fontEmbedCSS || undefined)
         images.push({
           dataUrl,
           fileName: fileNames[i] || defaultSlideFileName(i),
@@ -189,7 +202,9 @@ export default function ExportPanel({
       const dataUrl = await exportSlideToPng(
         slide,
         imageDataUrls[slide.imageIndex || 0],
-        settings
+        settings,
+        {},
+        slide.isCover ? undefined : uniformFontSize
       )
       const name = fileNames[currentSlideIndex] || defaultSlideFileName(currentSlideIndex)
       await downloadImage(dataUrl, name.endsWith('.png') ? name : `${name}.png`)

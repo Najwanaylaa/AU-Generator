@@ -12,10 +12,12 @@ import {
 import {
   buildExportTextCss,
   buildExportTextBoxCss,
+  buildParagraphBoxCss,
+  buildParagraphTextCss,
   getSlideFlexAlign,
   resolveTextStyle,
 } from '@/lib/slideTextStyle'
-import { getFontFamily } from '@/lib/fonts'
+import { getFontFamily, forceLoadFont, getEmbeddedFontCSS, GOOGLE_FONTS_MAP, FontId } from '@/lib/fonts'
 
 export interface SlideRenderOptions {
   width: number
@@ -49,7 +51,8 @@ export function dataUrlToBlob(dataUrl: string): Blob {
 export function fitExportSlideText(
   root: HTMLDivElement,
   slide: Slide,
-  projectSettings?: ProjectSettings
+  projectSettings?: ProjectSettings,
+  fontSizeOverride?: number
 ): number {
   if (slide.isCover) {
     return fitCoverSlideText(root, slide)
@@ -61,6 +64,13 @@ export function fitExportSlideText(
   const textBoxesContainer = root.querySelector('[data-slide-text-box]') as HTMLElement | null
   
   if (!textElements.length || !textBoxesContainer) return textStyle.fontSize
+
+  if (fontSizeOverride !== undefined) {
+    textElements.forEach((el) => {
+      el.style.fontSize = `${fontSizeOverride}px`
+    })
+    return fontSizeOverride
+  }
 
   if (!textStyle.autoFitText) {
     textElements.forEach((el) => {
@@ -190,6 +200,42 @@ function buildCoverSubtitleCss(titleFontSize: number, style?: import('@/types').
 }
 
 /**
+ * After font loading and size fitting, "bake" the measured text element widths.
+ * This prevents html-to-image from re-wrapping text when using a fallback font
+ * by setting explicit minimum widths with a generous buffer.
+ */
+function bakeTextElementWidths(root: HTMLDivElement): void {
+  const textElements = Array.from(root.querySelectorAll('[data-slide-text]')) as HTMLElement[]
+  textElements.forEach((el) => {
+    const span = el.querySelector('[data-slide-text-content]') as HTMLSpanElement | null
+    if (!span) return
+
+    // Use Range API to detect how many lines the text actually renders on
+    const range = document.createRange()
+    range.selectNodeContents(span)
+    const lineRects = Array.from(range.getClientRects())
+
+    if (lineRects.length === 0) return
+
+    if (lineRects.length === 1) {
+      // Single-line element: force nowrap and set explicit width
+      span.style.whiteSpace = 'nowrap'
+      const w = Math.ceil(el.getBoundingClientRect().width)
+      el.style.width = `${w}px`
+      el.style.maxWidth = 'none'
+    } else {
+      // Multi-line element: fix the container width to prevent re-wrap with wider font.
+      // We use the actual measured width + a tiny 6px sub-pixel buffer so the paragraph
+      // background bubble fits the text snuggly (per paragraph).
+      const measuredWidth = Math.ceil(el.getBoundingClientRect().width)
+      const bufferedWidth = measuredWidth + 6
+      el.style.width = `${Math.min(bufferedWidth, (root.clientWidth || 1080) - 96)}px`
+      el.style.maxWidth = 'none'
+    }
+  })
+}
+
+/**
  * Build + measure export slide in a hidden 1080×1920 container (WYSIWYG sizing).
  */
 export async function prepareExportSlideElement(
@@ -199,16 +245,21 @@ export async function prepareExportSlideElement(
     width: DEFAULT_SLIDE_OPTIONS.width,
     height: DEFAULT_SLIDE_OPTIONS.height,
   },
-  projectSettings?: ProjectSettings
+  projectSettings?: ProjectSettings,
+  fontSizeOverride?: number
 ): Promise<HTMLDivElement> {
-  const root = await buildExportSlideElement(slide, imageDataUrl, dimensions, projectSettings)
+  const root = await buildExportSlideElement(slide, imageDataUrl, dimensions, projectSettings, fontSizeOverride)
 
   const temp = document.createElement('div')
   temp.style.cssText = `position:fixed;left:-10000px;top:0;width:${dimensions.width}px;height:${dimensions.height}px;opacity:0;pointer-events:none;overflow:hidden`
   document.body.appendChild(temp)
   temp.appendChild(root)
+  const textStyle = resolveTextStyle(slide.textStyle)
+  await forceLoadFont(textStyle.fontFamily || 'poppins', textStyle.fontWeight || 900)
   await document.fonts.ready
-  fitExportSlideText(root, slide, projectSettings)
+  fitExportSlideText(root, slide, projectSettings, fontSizeOverride)
+  // Bake measured widths to prevent html-to-image font-fallback wrapping
+  bakeTextElementWidths(root)
   temp.removeChild(root)
   document.body.removeChild(temp)
 
@@ -280,7 +331,8 @@ export async function buildExportSlideElement(
   slide: Slide,
   imageDataUrl: string,
   dimensions: { width: number; height: number } = { width: 1080, height: 1920 },
-  projectSettings?: ProjectSettings
+  projectSettings?: ProjectSettings,
+  fontSizeOverride?: number
 ): Promise<HTMLDivElement> {
   const { width, height } = dimensions
   const textStyle = resolveTextStyle(slide.textStyle)
@@ -289,6 +341,7 @@ export async function buildExportSlideElement(
   const bgFilter = getBackgroundFilterCss(slide.backgroundFilter)
 
   const root = document.createElement('div')
+
   root.style.cssText = [
     `width:${width}px`,
     `height:${height}px`,
@@ -391,7 +444,7 @@ export async function buildExportSlideElement(
     return root
   }
 
-  const exportFontSize = getAdaptiveExportFontSize(
+  const exportFontSize = fontSizeOverride ?? getAdaptiveExportFontSize(
     slide.text,
     settings.maxCharsPerSlide,
     textStyle
@@ -400,28 +453,47 @@ export async function buildExportSlideElement(
   const maxTextHeight = Math.round(height * EXPORT_TEXT_MAX_HEIGHT_RATIO)
   const textContainer = document.createElement('div')
   textContainer.setAttribute('data-slide-text-box', '')
-  textContainer.style.cssText = `position:relative;z-index:2;width:100%;max-height:${maxTextHeight}px;box-sizing:border-box;text-align:${textStyle.textAlign};display:flex;flex-direction:column;gap:${Math.round(exportFontSize * 0.6)}px;align-items:${textStyle.textAlign === 'center' ? 'center' : textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start'};overflow:visible;`
+  textContainer.style.cssText = `position:relative;z-index:2;width:100%;max-height:${maxTextHeight}px;box-sizing:border-box;text-align:${textStyle.textAlign};display:flex;flex-direction:column;gap:${Math.max(6, Math.round(exportFontSize * 0.15))}px;align-items:${textStyle.textAlign === 'center' ? 'center' : textStyle.textAlign === 'right' ? 'flex-end' : 'flex-start'};overflow:visible;`
 
-  // Split by paragraph breaks (double newline or more)
-  const paragraphs = slide.text
-    .split(/\n{2,}/)
-    .map((para) => para.trim())
-    .filter((para) => para.length > 0)
+  // Split text into paragraphs: blank lines = paragraph separator, consecutive lines = same bubble
+  // Each paragraph gets ONE bubble background; lines within a paragraph share that bubble
+  const rawLines = slide.text.split(/\r?\n/)
+  const paragraphs: string[][] = []
+  let currentParagraph: string[] = []
 
-  paragraphs.forEach((paragraphText) => {
+  rawLines.forEach((line) => {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      if (currentParagraph.length > 0) {
+        paragraphs.push(currentParagraph)
+        currentParagraph = []
+      }
+      paragraphs.push([]) // empty array = spacer sentinel
+    } else {
+      currentParagraph.push(trimmed)
+    }
+  })
+  if (currentParagraph.length > 0) paragraphs.push(currentParagraph)
+
+  paragraphs.forEach((para) => {
+    if (para.length === 0) {
+      const spacer = document.createElement('div')
+      spacer.style.cssText = `height:${Math.round(exportFontSize * 0.65)}px;width:100%;`
+      textContainer.appendChild(spacer)
+      return
+    }
+
+    // One bubble per paragraph — background goes on the wrapper div
     const textElement = document.createElement('div')
     textElement.setAttribute('data-slide-text', '')
-    textElement.style.cssText = `width:fit-content;max-width:90%;`
+    textElement.style.cssText = buildParagraphBoxCss(textStyle, exportFontSize)
 
-    const escaped = escapeHtml(paragraphText)
-    // Convert single newlines to <br> within paragraph for manual line breaks
-    const html = escaped.replace(/\n/g, '<br>')
-    
+    // Inner span: text styling only (no background), all lines joined with newline
     const textSpan = document.createElement('span')
     textSpan.setAttribute('data-slide-text-content', '')
-    textSpan.innerHTML = html
-    textSpan.style.cssText = buildExportTextCss(textStyle, exportFontSize)
-    
+    textSpan.innerHTML = para.map(escapeHtml).join('\n')
+    textSpan.style.cssText = buildParagraphTextCss(textStyle, exportFontSize)
+
     textElement.appendChild(textSpan)
     textContainer.appendChild(textElement)
   })
@@ -439,24 +511,35 @@ export async function exportSlideToPng(
   slide: Slide,
   imageDataUrl: string,
   projectSettings?: ProjectSettings,
-  options: Partial<SlideRenderOptions> = {}
+  options: Partial<SlideRenderOptions> = {},
+  fontSizeOverride?: number
 ): Promise<string> {
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options }
   const el = await prepareExportSlideElement(slide, imageDataUrl, {
     width: opts.width,
     height: opts.height,
-  }, projectSettings)
+  }, projectSettings, fontSizeOverride)
+
+  const textStyle = resolveTextStyle(slide.textStyle)
+  const fontEmbedCSS = await getEmbeddedFontCSS(textStyle.fontFamily || 'poppins', textStyle.fontWeight || 900)
+
+  const temp = document.createElement('div')
+  temp.style.cssText = `position:fixed;left:-10000px;top:0;width:${opts.width}px;height:${opts.height}px;opacity:0;pointer-events:none;overflow:hidden`
+  document.body.appendChild(temp)
+  temp.appendChild(el)
 
   try {
-    return await slideToImage(el, opts)
+    return await slideToImage(el, opts, fontEmbedCSS || undefined)
   } finally {
-    el.remove()
+    temp.removeChild(el)
+    document.body.removeChild(temp)
   }
 }
 
 export async function slideToImage(
   element: HTMLElement,
-  options: Partial<SlideRenderOptions> = {}
+  options: Partial<SlideRenderOptions> = {},
+  fontEmbedCSS?: string
 ): Promise<string> {
   const opts = { ...DEFAULT_SLIDE_OPTIONS, ...options }
 
@@ -468,6 +551,7 @@ export async function slideToImage(
       cacheBust: false,
       includeQueryParams: true,
       backgroundColor: '#000000',
+      ...(fontEmbedCSS ? { fontEmbedCSS } : {}),
     })
   } catch (error) {
     console.error('Error converting slide to image:', error)
@@ -582,4 +666,25 @@ export function formatFileSize(bytes: number): string {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
 
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
+}
+
+export async function getUniformFontSizeForSlides(
+  slides: Slide[],
+  imageDataUrls: string[],
+  projectSettings?: ProjectSettings
+): Promise<number | undefined> {
+  let minFittedSize = 999
+  const nonCoverSlides = slides.filter(s => !s.isCover)
+  for (const slide of nonCoverSlides) {
+    const imageUrl = imageDataUrls[slide.imageIndex || 0]
+    if (!imageUrl) continue
+    const el = await prepareExportSlideElement(slide, imageUrl, { width: 1080, height: 1920 }, projectSettings)
+    const textEls = Array.from(el.querySelectorAll('[data-slide-text-content]')) as HTMLElement[]
+    const size = textEls.length ? parseFloat(textEls[0].style.fontSize) : undefined
+    el.remove()
+    if (size && size < minFittedSize) {
+      minFittedSize = size
+    }
+  }
+  return minFittedSize < 999 ? minFittedSize : undefined
 }

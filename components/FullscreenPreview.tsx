@@ -14,6 +14,7 @@ interface FullscreenPreviewProps {
   onClose: () => void
   onPrevious?: () => void
   onNext?: () => void
+  uniformFontSize?: number
 }
 
 export default function FullscreenPreview({
@@ -25,6 +26,7 @@ export default function FullscreenPreview({
   onClose,
   onPrevious,
   onNext,
+  uniformFontSize,
 }: FullscreenPreviewProps) {
   useEffect(() => {
     const prev = document.body.style.overflow
@@ -83,6 +85,7 @@ export default function FullscreenPreview({
             showCharCount={false}
             scaleMode="contain"
             className="rounded-lg"
+            uniformFontSize={uniformFontSize}
           />
         </div>
       </div>

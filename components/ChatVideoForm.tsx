@@ -187,16 +187,6 @@ export default function ChatVideoForm({ project, onProjectChange }: ChatVideoFor
         <h3 className="text-sm font-semibold text-slate-200">CTA Akhir / Promosi</h3>
 
         <div>
-          <label className="text-xs text-slate-400 block mb-1">Pesan Terakhir</label>
-          <textarea
-            value={project.finalMessage}
-            onChange={(e) => onProjectChange({ ...project, finalMessage: e.target.value })}
-            className="w-full h-20 px-2 py-1 rounded text-xs bg-slate-800 border border-slate-700 text-slate-100 resize-none"
-            placeholder="Pesan yang ditampilkan di akhir video..."
-          />
-        </div>
-
-        <div>
           <label className="text-xs text-slate-400 block mb-1">Teks CTA (Ajakan Aksi)</label>
           <input
             type="text"

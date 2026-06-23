@@ -39,17 +39,17 @@ export const DEFAULT_TEXT_STYLE: TextStyle = {
   fontFamily: 'poppins',
   fontSize: 56,
   fontWeight: 900,
-  textAlign: 'center',
+  textAlign: 'left',
   verticalPosition: 'bottom',
   opacity: 1,
-  lineHeight: 1.2,
+  lineHeight: 1.45,
   letterSpacing: 0,
   textShadow: true,
   color: DEFAULT_TEXT_COLOR,
   boxColor: DEFAULT_BOX_COLOR,
   boxOpacity: 1,
   boxBlur: 0,
-  boxPadding: 0,
+  boxPadding: 24,
   boxRadius: 20,
   boxSpread: 0,
   autoFitText: true,
@@ -187,7 +187,6 @@ export function buildExportTextCss(style?: TextStyle, fontSizeOverride?: number)
     `opacity:${s.opacity}`,
     `text-align:${s.textAlign}`,
     'margin:0',
-    'word-break:break-word',
     `text-shadow:${shadow}`,
     `-webkit-text-stroke:${isTransparent ? '1px rgba(0,0,0,0.8)' : 'none'}`,
     `background:${bg}`,
@@ -201,8 +200,86 @@ export function buildExportTextCss(style?: TextStyle, fontSizeOverride?: number)
     `backdrop-filter:${s.boxBlur > 0 ? `blur(${s.boxBlur}px)` : 'none'}`,
     `-webkit-backdrop-filter:${s.boxBlur > 0 ? `blur(${s.boxBlur}px)` : 'none'}`,
     'white-space:pre-wrap',
-    'word-wrap:break-word',
   ].join(';')
   cssCache.set(key, css)
   return css
 }
+
+/**
+ * CSS for the outer paragraph bubble wrapper — background box styling only.
+ * Used when rendering whole paragraphs as a single bubble.
+ */
+export function buildParagraphBoxCss(style?: TextStyle, fontSizeOverride?: number): string {
+  const key = `paraBoxCss-${getStyleCacheKey(style)}-${fontSizeOverride ?? 'default'}`
+  if (cssCache.has(key)) return cssCache.get(key)!
+
+  const s = resolveTextStyle(style)
+
+  const css = [
+    'background:transparent',
+    'border:none',
+    'padding:0',
+    'box-shadow:none',
+    'backdrop-filter:none',
+    '-webkit-backdrop-filter:none',
+    'box-sizing:border-box',
+    'width:fit-content',
+    'max-width:90%',
+    `text-align:${s.textAlign}`,
+  ].join(';')
+  cssCache.set(key, css)
+  return css
+}
+
+/**
+ * CSS for the inner text span — font and color styling only, no background.
+ * Used inside a paragraph bubble wrapper so the whole paragraph shares one bubble.
+ */
+export function buildParagraphTextCss(style?: TextStyle, fontSizeOverride?: number): string {
+  const key = `paraTextCss-${getStyleCacheKey(style)}-${fontSizeOverride ?? 'default'}`
+  if (cssCache.has(key)) return cssCache.get(key)!
+
+  const s = resolveTextStyle(style)
+  const fontSize = fontSizeOverride ?? s.fontSize
+  const isTransparent = s.boxColor === 'transparent'
+  const shadow = s.textShadow
+    ? isTransparent
+      ? '0 2px 12px rgba(0,0,0,0.5), 0 1px 6px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3)'
+      : '0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)'
+    : 'none'
+  const spread = s.boxSpread ?? 0
+
+  const bg = isTransparent ? 'transparent' : convertToRgba(s.boxColor ?? '', s.boxOpacity)
+  // Dynamic padding based on boxPadding setting (horizontal ~3x vertical ratio for bubble look)
+  const padX = s.boxPadding ? Math.round(s.boxPadding * 0.9) : Math.max(2, Math.round(fontSize * 0.1))
+  const padY = s.boxPadding ? Math.round(s.boxPadding * 0.3) : Math.max(2, Math.round(fontSize * 0.08))
+  const radiusVal = Math.max(0, s.boxRadius ?? 20)
+
+  const css = [
+    `color:${s.color}`,
+    `font-size:${fontSize}px`,
+    `font-weight:${s.fontWeight}`,
+    `font-family:${getFontFamily(s.fontFamily)}`,
+    `line-height:${s.lineHeight}`,
+    `letter-spacing:${s.letterSpacing}px`,
+    `opacity:${s.opacity}`,
+    `text-align:${s.textAlign}`,
+    'margin:0',
+    `text-shadow:${shadow}`,
+    `-webkit-text-stroke:${isTransparent ? '1px rgba(0,0,0,0.8)' : 'none'}`,
+    `background:${bg}`,
+    `padding:${padY}px ${padX}px`,
+    `border-radius:${radiusVal}px`,
+    `box-shadow:${spread > 0 ? `0 0 ${spread}px rgba(0,0,0,0.18)` : 'none'}`,
+    `border:${isTransparent ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(255,255,255,0.15)'}`,
+    'display:inline',
+    'box-decoration-break:clone',
+    `-webkit-box-decoration-break:clone`,
+    `backdrop-filter:${s.boxBlur > 0 ? `blur(${s.boxBlur}px)` : 'none'}`,
+    `-webkit-backdrop-filter:${s.boxBlur > 0 ? `blur(${s.boxBlur}px)` : 'none'}`,
+    'white-space:pre-wrap',
+  ].join(';')
+  cssCache.set(key, css)
+  return css
+}
+

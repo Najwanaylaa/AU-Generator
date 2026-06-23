@@ -26,6 +26,7 @@ interface SlideCarouselProps {
   onActiveSlideChange?: (index: number) => void
   onImagesAdd?: (files: FileList) => void
   onSettingsChange?: (settings: ProjectSettings) => void
+  uniformFontSize?: number
 }
 
 export default function SlideCarousel({
@@ -36,6 +37,7 @@ export default function SlideCarousel({
   onActiveSlideChange,
   onImagesAdd,
   onSettingsChange,
+  uniformFontSize,
 }: SlideCarouselProps) {
   const [currentSlideIndex, setCurrentSlideIndex] = useState(0)
   const [editorOpen, setEditorOpen] = useState(true)
@@ -156,6 +158,7 @@ export default function SlideCarousel({
             slideDimensions={{ width: 1080, height: 1920 }}
             projectSettings={projectSettings}
             showCharCount={false}
+            uniformFontSize={uniformFontSize}
           />
 
           <button
@@ -301,6 +304,7 @@ export default function SlideCarousel({
           onClose={() => setFullscreenOpen(false)}
           onPrevious={slides.length > 1 ? handlePrevious : undefined}
           onNext={slides.length > 1 ? handleNext : undefined}
+          uniformFontSize={uniformFontSize}
         />
       )}
     </div>

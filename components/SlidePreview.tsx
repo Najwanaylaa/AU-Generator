@@ -18,6 +18,7 @@ interface SlidePreviewProps {
   /** 'width' = scale to container width (sidebar). 'contain' = fit inside box (fullscreen). */
   scaleMode?: 'width' | 'contain'
   className?: string
+  uniformFontSize?: number
 }
 
 function SlidePreview({
@@ -29,6 +30,7 @@ function SlidePreview({
   projectSettings,
   scaleMode = 'width',
   className = '',
+  uniformFontSize,
 }: SlidePreviewProps) {
   const viewportRef = useRef<HTMLDivElement>(null)
   const mountRef = useRef<HTMLDivElement>(null)
@@ -86,7 +88,10 @@ function SlidePreview({
     if (!mount) return
 
     let cancelled = false
-    setIsLoading(true)
+    const hasExisting = mount.children.length > 0
+    if (!hasExisting) {
+      setIsLoading(true)
+    }
     setRenderError('')
 
     ;(async () => {
@@ -99,7 +104,8 @@ function SlidePreview({
           slide,
           imageUrl,
           { width: exportWidth, height: exportHeight },
-          settings
+          settings,
+          slide.isCover ? undefined : uniformFontSize
         )
         if (cancelled) {
           el.remove()
@@ -140,7 +146,7 @@ function SlidePreview({
     return () => {
       cancelled = true
     }
-  }, [slide, imageUrl, exportWidth, exportHeight, styleKey, settings])
+  }, [slide, imageUrl, exportWidth, exportHeight, styleKey, settings, uniformFontSize])
 
 
   const scaledWidth = exportWidth * scale

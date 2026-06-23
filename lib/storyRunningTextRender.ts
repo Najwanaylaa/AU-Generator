@@ -18,49 +18,63 @@ export function layoutRunningText(
   lineHeightPx: number,
   paragraphGapPx: number
 ): RunningTextLayout {
-  // Split input into lines, preserving paragraph breaks
-  const sourceLines = text.split('\n')
+  const sourceLines = text.split(/\r?\n/)
   const lines: RunningTextLine[] = []
 
-  for (let i = 0; i < sourceLines.length; i++) {
-    const rawLine = sourceLines[i].trim()
-    if (rawLine === '') {
-      // Add a paragraph gap (only if we didn't just add one, to avoid multiple empty spaces collapsing)
+  // Group consecutive non-empty lines into paragraphs
+  const paragraphs: string[][] = []
+  let currentParagraph: string[] = []
+
+  sourceLines.forEach((line) => {
+    const trimmed = line.trim()
+    if (trimmed.length === 0) {
+      if (currentParagraph.length > 0) {
+        paragraphs.push(currentParagraph)
+        currentParagraph = []
+      }
+      paragraphs.push([]) // empty array = paragraph break sentinel
+    } else {
+      currentParagraph.push(trimmed)
+    }
+  })
+  if (currentParagraph.length > 0) {
+    paragraphs.push(currentParagraph)
+  }
+
+  paragraphs.forEach((para) => {
+    if (para.length === 0) {
+      // Paragraph break spacer gap
       if (lines.length > 0 && !lines[lines.length - 1].isGap) {
         lines.push({ text: '', isGap: true })
       }
-      continue
+      return
     }
 
-    // Wrap the line based on maxWidth
-    const words = rawLine.split(/\s+/).filter(Boolean)
-    if (words.length === 0) continue
+    // Process the paragraph's lines
+    para.forEach((rawLine) => {
+      const words = rawLine.split(/\s+/).filter(Boolean)
+      if (words.length === 0) return
 
-    let current = ''
-    const paragraphWrappedLines: string[] = []
-    
-    for (const word of words) {
-      const test = current ? `${current} ${word}` : word
-      if (ctx.measureText(test).width > maxWidth && current) {
-        paragraphWrappedLines.push(current)
-        current = word
-      } else {
-        current = test
+      let current = ''
+      const wrapped: string[] = []
+      for (const word of words) {
+        const test = current ? `${current} ${word}` : word
+        if (ctx.measureText(test).width > maxWidth && current) {
+          wrapped.push(current)
+          current = word
+        } else {
+          current = test
+        }
       }
-    }
-    if (current) {
-      paragraphWrappedLines.push(current)
-    }
+      if (current) {
+        wrapped.push(current)
+      }
 
-    paragraphWrappedLines.forEach((wl) => {
-      lines.push({ text: wl, isGap: false })
+      wrapped.forEach((wl) => {
+        lines.push({ text: wl, isGap: false })
+      })
     })
-
-    // If there is another line coming and it's not empty, add a small gap
-    if (i < sourceLines.length - 1 && sourceLines[i + 1].trim() !== '') {
-      lines.push({ text: '', isGap: true })
-    }
-  }
+  })
 
   // Calculate total height
   let totalHeight = 0
@@ -107,6 +121,66 @@ export function drawRoundRect(
   ctx.quadraticCurveTo(x, y + h, x, y + h - radius)
   ctx.lineTo(x, y + radius)
   ctx.quadraticCurveTo(x, y, x + radius, y)
+  ctx.closePath()
+}
+
+export function drawCustomRoundRect(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  corners: { tl: boolean; tr: boolean; br: boolean; bl: boolean }
+) {
+  if (r <= 0) {
+    ctx.beginPath()
+    ctx.rect(x, y, w, h)
+    ctx.closePath()
+    return
+  }
+  const radius = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  
+  // Top-left
+  if (corners.tl) {
+    ctx.moveTo(x + radius, y)
+  } else {
+    ctx.moveTo(x, y)
+  }
+
+  // Top-right
+  if (corners.tr) {
+    ctx.lineTo(x + w - radius, y)
+    ctx.quadraticCurveTo(x + w, y, x + w, y + radius)
+  } else {
+    ctx.lineTo(x + w, y)
+  }
+
+  // Bottom-right
+  if (corners.br) {
+    ctx.lineTo(x + w, y + h - radius)
+    ctx.quadraticCurveTo(x + w, y + h, x + w - radius, y + h)
+  } else {
+    ctx.lineTo(x + w, y + h)
+  }
+
+  // Bottom-left
+  if (corners.bl) {
+    ctx.lineTo(x + radius, y + h)
+    ctx.quadraticCurveTo(x, y + h, x, y + h - radius)
+  } else {
+    ctx.lineTo(x, y + h)
+  }
+
+  // Back to Top-left
+  if (corners.tl) {
+    ctx.lineTo(x, y + radius)
+    ctx.quadraticCurveTo(x, y, x + radius, y)
+  } else {
+    ctx.lineTo(x, y)
+  }
+
   ctx.closePath()
 }
 
@@ -165,7 +239,7 @@ export function drawRunningTextFrame(
   // 4. Layout Text
   ctx.save()
   ctx.font = `400 ${settings.fontSize}px ${getFontFamily(settings.fontFamily)}`
-  ctx.textBaseline = 'top'
+  ctx.textBaseline = 'middle'
 
   const paddingX = width * 0.08
   const maxWidth = width - paddingX * 2
@@ -177,35 +251,38 @@ export function drawRunningTextFrame(
   // 5. Draw Highlights
   if (settings.highlightType !== 'none') {
     ctx.fillStyle = settings.highlightColor
-    const padX = settings.fontSize * 0.4
-    const padY = settings.fontSize * 0.15
-    const radius = settings.highlightType === 'rounded' ? settings.fontSize * 0.35 : 0
+    // Generous capsule padding so bubble is noticeably wider/taller than the text (padX = 0.7, padY = 0.28)
+    const padX = settings.fontSize * 0.7
+    const padY = settings.fontSize * 0.28
+    const boxH = settings.fontSize + padY * 2
+    // Perfect capsule pill shape (radius = half of height)
+    const radius = settings.highlightType === 'rounded' ? boxH / 2 : 0
+    // lineHeightPx centers each line within the layout row
+    const lineCenter = lineHeightPx / 2
 
     layout.lines.forEach(({ y: lineY, line }) => {
       if (line.isGap || line.text === '') return
 
       // Calculate drawing Y position (scrolling from bottom to top)
       const drawY = height - scrollOffset + lineY
+      // Box is centered in the line slot
+      const boxCenterY = drawY + lineCenter
+      const boxY = boxCenterY - boxH / 2
 
       // Skip drawing if out of visible bounds
-      if (drawY + lineHeightPx + padY < 0 || drawY - padY > height) return
+      if (boxY + boxH < 0 || boxY > height) return
 
       const lineWidth = ctx.measureText(line.text).width
       const lx = paddingX + (maxWidth - lineWidth) / 2
 
       ctx.save()
-      drawRoundRect(ctx, lx - padX, drawY - padY, lineWidth + padX * 2, lineHeightPx + padY * 2, radius)
+      drawRoundRect(ctx, lx - padX, boxY, lineWidth + padX * 2, boxH, radius)
       ctx.fill()
-      
-      // Draw subtle outline stroke
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)'
-      ctx.lineWidth = 1
-      ctx.stroke()
       ctx.restore()
     })
   }
 
-  // 6. Draw Text
+  // 6. Draw Text — baseline='middle' so Y is vertical center of each line slot
   ctx.fillStyle = settings.textColor
   ctx.textAlign = 'center'
 
@@ -213,14 +290,16 @@ export function drawRunningTextFrame(
   ctx.shadowColor = 'rgba(0,0,0,0.8)'
   ctx.shadowBlur = settings.highlightType === 'none' ? 8 : 2
   ctx.shadowOffsetY = settings.highlightType === 'none' ? 2 : 1
+  const lineCenter = lineHeightPx / 2
 
   layout.lines.forEach(({ y: lineY, line }) => {
     if (line.isGap || line.text === '') return
 
     const drawY = height - scrollOffset + lineY
-    if (drawY + lineHeightPx < 0 || drawY > height) return
+    const textY = drawY + lineCenter
+    if (textY < -settings.fontSize || textY > height + settings.fontSize) return
 
-    ctx.fillText(line.text, width / 2, drawY)
+    ctx.fillText(line.text, width / 2, textY)
   })
 
   ctx.restore()

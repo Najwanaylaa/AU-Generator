@@ -53,7 +53,7 @@ export const STYLE_TEMPLATES: StyleTemplate[] = [
       fontFamily: 'poppins',
       fontSize: 56,
       fontWeight: 900,
-      lineHeight: 1.15,
+      lineHeight: 1.4,
       letterSpacing: 0,
       color: '#000000',
       boxOpacity: 1,

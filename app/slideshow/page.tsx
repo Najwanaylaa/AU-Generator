@@ -36,6 +36,7 @@ export default function SlideshowPage() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
   const [saveError, setSaveError] = useState('')
   const [activeSlideIndex, setActiveSlideIndex] = useState(0)
+  const [showForm, setShowForm] = useState(false)
 
   useEffect(() => {
     const saved = loadProject()
@@ -167,6 +168,7 @@ export default function SlideshowPage() {
         await saveProject(result)
         clearFormDraft()
         setSaveStatus('saved')
+        setShowForm(false)
       } catch (err) {
         console.error('Error generating slides:', err)
         setError(err instanceof Error ? err.message : 'An error occurred')
@@ -246,10 +248,34 @@ export default function SlideshowPage() {
           </div>
           <UndoRedoToolbar canUndo={canUndo} canRedo={canRedo} onUndo={undo} onRedo={redo} />
         </div>
-        <button type="button" onClick={() => router.push('/story-prompt')} className="btn-secondary shrink-0">
-          Story Prompter →
-        </button>
+        <div className="flex flex-wrap gap-2 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowForm((v) => !v)}
+            className={showForm ? 'btn-primary shrink-0' : 'btn-secondary shrink-0'}
+          >
+            {showForm ? '✕ Tutup Form' : '✦ Generate Ulang'}
+          </button>
+          <button type="button" onClick={() => router.push('/story-prompt')} className="btn-secondary shrink-0">
+            Story Prompter →
+          </button>
+        </div>
       </div>
+
+      {showForm && (
+        <div className="panel space-y-6">
+          <StoryUploadForm onGenerate={handleGenerateSlides} isLoading={isLoading} />
+          {error && (
+            <div className="error-banner" role="alert">
+              <span aria-hidden="true">⚠</span>
+              <div>
+                <p className="font-medium">Failed to generate slides</p>
+                <p className="mt-0.5 opacity-90">{error}</p>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {saveStatus === 'error' && saveError && (
         <div className="error-banner" role="alert">{saveError}</div>

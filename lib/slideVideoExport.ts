@@ -5,9 +5,8 @@ import {
   SLIDE_WIDTH,
   SLIDE_HEIGHT,
   loadSlideBackground,
-  measureSlideLayout,
-  drawSlideFrame,
 } from '@/lib/slideCanvasRender'
+import { getUniformFontSizeForSlides, exportSlideToPng } from '@/lib/slideExport'
 
 const WIDTH = SLIDE_WIDTH
 const HEIGHT = SLIDE_HEIGHT
@@ -145,25 +144,29 @@ export async function exportSlidesToSlideMp4(
 
     let timestamp = 0
 
+    onProgress?.('Calculating consistent font sizes…')
+    const uniformFontSize = await getUniformFontSizeForSlides(slides, imageDataUrls, settings)
+
     for (let s = 0; s < slides.length; s++) {
       onProgress?.(`Encoding slide ${s + 1} of ${slides.length}…`)
       const slide = slides[s]
       const imageDataUrl = imageDataUrls[slide.imageIndex || 0]
 
-      const [bgImage, layout] = await Promise.all([
-        loadSlideBackground(imageDataUrl),
-        measureSlideLayout(slide, imageDataUrl, settings),
-      ])
+      const slidePngUrl = await exportSlideToPng(
+        slide,
+        imageDataUrl,
+        settings,
+        { width: WIDTH, height: HEIGHT },
+        slide.isCover ? undefined : uniformFontSize
+      )
+      const slideImage = await loadSlideBackground(slidePngUrl)
 
       for (let f = 0; f < framesPerSlide; f++) {
         await waitForEncoderQueue(encoder)
         assertEncoderReady(encoder, encoderError)
 
-        // PERBAIKAN: Mengunci scrollOffset ke 0 agar teks statis/tidak bergeser naik
-        const scrollOffset = 0
-
         ctx.clearRect(0, 0, WIDTH, HEIGHT)
-        drawSlideFrame(ctx, bgImage, slide, layout, scrollOffset, settings)
+        ctx.drawImage(slideImage, 0, 0, WIDTH, HEIGHT)
 
         const frame = new VideoFrame(canvas, {
           timestamp,

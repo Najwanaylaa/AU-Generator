@@ -1,6 +1,6 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
 import { drawRunningTextFrame } from './storyRunningTextRender'
-import { getFontFamily } from '@/lib/fonts'
+import { getFontFamily, forceLoadFont } from '@/lib/fonts'
 
 const FPS = 30
 const ENCODE_QUEUE_LIMIT = 8
@@ -121,6 +121,7 @@ export async function exportRunningTextToMp4(
   const frameDurationUs = Math.round(1_000_000 / FPS)
 
   onProgress?.('Preparing running text layout…')
+  await forceLoadFont(settings.fontFamily, 400)
   await document.fonts.ready
 
   // 2. Load background image if present

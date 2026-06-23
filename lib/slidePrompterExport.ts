@@ -1,6 +1,7 @@
 import { Muxer, ArrayBufferTarget } from 'mp4-muxer'
 import { Slide, ProjectSettings } from '@/types'
 import { resolveProjectSettings } from '@/lib/projectSettings'
+import { forceLoadFont } from '@/lib/fonts'
 import {
   SLIDE_WIDTH,
   SLIDE_HEIGHT,
@@ -103,10 +104,12 @@ export async function exportSlidesToPrompterMp4(
   const frameDurationUs = Math.round(1_000_000 / FPS)
 
   onProgress?.('Preparing prompter layout…')
+  const styleSlide = slides.find((slide) => !slide.isCover) ?? slides[0]
+  const textStyle = styleSlide?.textStyle
+  await forceLoadFont(textStyle?.fontFamily || 'poppins', textStyle?.fontWeight || 900)
   await document.fonts.ready
 
   const paragraph = joinSlidesAsParagraph(slides)
-  const styleSlide = slides.find((slide) => !slide.isCover) ?? slides[0]
   const layout = await buildPrompterLayout(paragraph, styleSlide)
   const durationSec = estimatePrompterDurationSec(layout)
   const totalFrames = Math.max(2, Math.round(durationSec * FPS))

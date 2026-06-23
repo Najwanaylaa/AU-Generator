@@ -14,7 +14,7 @@ const DEFAULT_SETTINGS: ChatVideoSettings = {
   theme: 'light',
   messageDelaySec: 1.2,
   fontSize: 18,
-  bubbleMaxWidth: 85,
+  bubbleMaxWidth: 70,
   resolution: '1080p',
 }
 
@@ -84,48 +84,48 @@ export default function ChatVideoPage() {
 
   return (
     <main className="min-h-screen bg-slate-950">
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="max-w-7xl mx-auto px-4 py-4">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <button
               type="button"
               onClick={() => router.push('/')}
-              className="btn-ghost text-sm mb-3"
+              className="btn-ghost text-sm mb-2"
             >
               ← Dashboard
             </button>
-            <p className="mb-2 text-sm uppercase tracking-[0.3em] text-cyan-400/80">Chat Video Studio</p>
-            <h1 className="text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+            <p className="mb-1 text-xs uppercase tracking-[0.3em] text-cyan-400/80">Chat Video Studio</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
               Dashboard video chat premium
             </h1>
-            <p className="mt-3 max-w-2xl text-slate-400 leading-8">
+            <p className="mt-1 max-w-2xl text-slate-400 text-sm leading-6">
               Buat video WhatsApp-style vertikal dengan preview HP real-time dan export yang selaras dengan animasi chat.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className="glass-panel p-4">
-              <p className="text-sm font-medium text-slate-400">Jumlah Pesan</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{messageCount}</p>
-              <p className="mt-2 text-xs text-slate-500">
-                Termasuk pesan masuk dan keluar untuk video Anda.
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="glass-panel p-3">
+              <p className="text-xs font-medium text-slate-400">Jumlah Pesan</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{messageCount}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Termasuk pesan masuk dan keluar.
               </p>
             </div>
-            <div className="glass-panel p-4">
-              <p className="text-sm font-medium text-slate-400">Durasi Video</p>
-              <p className="mt-3 text-3xl font-semibold text-white">{previewDurationSec}</p>
-              <p className="mt-2 text-xs text-slate-500">Estimasi durasi animasi berdasarkan kecepatan chat.</p>
+            <div className="glass-panel p-3">
+              <p className="text-xs font-medium text-slate-400">Durasi Video</p>
+              <p className="mt-1 text-2xl font-semibold text-white">{previewDurationSec}</p>
+              <p className="mt-1 text-xs text-slate-500">Estimasi durasi animasi.</p>
             </div>
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[1.55fr_0.95fr]">
-          <div className="space-y-6">
-            <section className="glass-panel p-6">
-              <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="grid gap-4 xl:grid-cols-[1.55fr_0.95fr]">
+          <div className="space-y-4">
+            <section className="glass-panel p-4">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-100">Editor Pesan</p>
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400">
                     Ketik percakapan. Gunakan format <span className="text-slate-300">Nama Kontak: pesan</span> untuk pesan masuk.
                   </p>
                 </div>
@@ -134,11 +134,11 @@ export default function ChatVideoPage() {
               <ChatVideoForm project={project} onProjectChange={setProject} />
             </section>
 
-            <section className="glass-panel p-6">
-              <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <section className="glass-panel p-4">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-slate-100">Tampilan & Output</p>
-                  <p className="mt-2 text-sm text-slate-400">Sesuaikan tema, ukuran teks, dan format resolusi video.</p>
+                  <p className="mt-1 text-xs text-slate-400">Sesuaikan tema, ukuran teks, dan format resolusi video.</p>
                 </div>
                 <span className="badge-pill bg-slate-800/70 text-slate-200">WhatsApp vibe</span>
               </div>
@@ -151,11 +151,11 @@ export default function ChatVideoPage() {
             </section>
           </div>
 
-          <aside className="space-y-6">
-            <section className="glass-panel relative overflow-hidden p-6 self-start">
-              <div className="pointer-events-none absolute inset-x-6 top-6 h-40 rounded-3xl bg-gradient-to-b from-cyan-500/20 to-transparent blur-3xl opacity-70" />
+          <aside className="space-y-4 xl:sticky xl:top-4 xl:self-start">
+            <section className="glass-panel relative overflow-hidden p-4 self-start">
+              <div className="pointer-events-none absolute inset-x-4 top-4 h-32 rounded-3xl bg-gradient-to-b from-cyan-500/20 to-transparent blur-3xl opacity-70" />
               <div className="relative">
-                <div className="mb-4 flex items-center justify-between gap-4">
+                <div className="mb-3 flex items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-semibold text-slate-100">Preview HP Realistis</p>
                     <p className="text-xs text-slate-400">Lihat percakapan bergerak sebagai mockup perangkat.</p>
@@ -169,16 +169,16 @@ export default function ChatVideoPage() {
               </div>
             </section>
 
-            <section className="glass-panel p-6">
-              <div className="mb-5 flex items-center justify-between gap-4">
+            <section className="glass-panel p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-slate-100">Kontrol Ekspor</p>
-                  <p className="mt-1 text-xs text-slate-400">Siapkan video untuk download dengan progress bar instan.</p>
+                  <p className="mt-0.5 text-xs text-slate-400">Siapkan video untuk download.</p>
                 </div>
                 <span className="badge-pill bg-slate-800/70 text-slate-200">Export ready</span>
               </div>
 
-              <div className="grid gap-3">
+              <div className="grid gap-2">
                 <button
                   type="button"
                   onClick={handleGenerateVideo}
@@ -209,18 +209,18 @@ export default function ChatVideoPage() {
                 )}
               </div>
 
-              <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-4 text-center">
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-2.5 text-center">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Tema</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{project.settings.theme}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{project.settings.theme}</p>
                 </div>
-                <div className="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-4 text-center">
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-2.5 text-center">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Pop-up Chat</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{resolveMessageDelaySec(project.settings)}s</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{resolveMessageDelaySec(project.settings)}s</p>
                 </div>
-                <div className="rounded-3xl border border-slate-700/60 bg-slate-950/80 p-4 text-center">
+                <div className="rounded-2xl border border-slate-700/60 bg-slate-950/80 p-2.5 text-center">
                   <p className="text-[10px] uppercase tracking-[0.24em] text-slate-500">Resolusi</p>
-                  <p className="mt-2 text-sm font-semibold text-white">{project.settings.resolution}</p>
+                  <p className="mt-1 text-sm font-semibold text-white">{project.settings.resolution}</p>
                 </div>
               </div>
             </section>

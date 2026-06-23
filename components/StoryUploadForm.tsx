@@ -137,6 +137,23 @@ export default function StoryUploadForm({ onGenerate, isLoading = false }: Story
     if (fileInputRef.current) fileInputRef.current.value = ''
   }, [])
 
+  const loadDemoData = async () => {
+    setValue('storyTitle', 'Test Judul Slide')
+    setValue('storySubtitle', 'Oleh Penulis')
+    setValue('story', `Part1\n[Assalamualaikum Dek!]\n\nDeg!\nDadaku langsung berdebar kencang. Tiba-tiba banget ada pesan ngajakin nikah. Mana bikin soak banget pas baca nama yang mengirim pesan 'Mas Perwira'. Dia kan duda tua usia tiga puluh lima tahun yang ditinggal meninggal oleh kakakku tujuh tahun lalu alias mantan kakak iparku. Eh, ada mantan kakak ipar gak yah. Entahlah.\n\nHaha!\nAku menepuk pipiku tak percaya. Ku tatap lagi layar ponsel yang aku pegang. Dan lenyap. Pesan dihapus.`)
+
+    try {
+      const response = await fetch('/Baground chat WA.jpg')
+      const blob = await response.blob()
+      const file = new File([blob], 'Baground chat WA.jpg', { type: 'image/jpeg' })
+      const preview = URL.createObjectURL(file)
+      setImagePreviews([{ file, preview, size: file.size }])
+      setUploadError('')
+    } catch (e) {
+      console.error('Failed to load demo image', e)
+    }
+  }
+
   const onSubmit = async (data: { story: string; storyTitle: string; storySubtitle: string }) => {
     const validation = validateStory(data.story, maxCharsPerSlide)
     if (!validation.isValid) {
@@ -156,9 +173,18 @@ export default function StoryUploadForm({ onGenerate, isLoading = false }: Story
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="panel-section space-y-6">
       <fieldset className="space-y-3">
-        <legend className="flex items-center gap-2 w-full">
-          <span className="step-badge" aria-hidden="true">1</span>
-          <span className="label mb-0">Cover Information</span>
+        <legend className="flex items-center justify-between gap-2 w-full">
+          <div className="flex items-center gap-2">
+            <span className="step-badge" aria-hidden="true">1</span>
+            <span className="label mb-0">Cover Information</span>
+          </div>
+          <button
+            type="button"
+            onClick={loadDemoData}
+            className="text-xs text-cyan-400 hover:text-cyan-300 underline font-medium"
+          >
+            Load Demo Data
+          </button>
         </legend>
 
         <div className="space-y-2">

@@ -92,13 +92,13 @@ export default function ChatVideoPreview({ project }: ChatVideoPreviewProps) {
   }, [durationMs, previewProject.messages, previewProject.settings.messageDelaySec, previewProject.finalMessage, previewProject.ctaText])
 
   const dims = getResolutionDimensions(project.settings.resolution)
-  const displayScale = Math.min(1, 240 / dims.width)
+  const displayScale = Math.min(1, 260 / dims.width)
   const displayWidth = Math.round(dims.width * displayScale)
   const displayHeight = Math.round(dims.height * displayScale)
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-sm font-semibold text-slate-100">HP Preview</p>
           <p className="text-xs text-slate-400">Animasi mengikuti timeline export video.</p>

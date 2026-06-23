@@ -1,6 +1,6 @@
 import { Slide, ProjectSettings } from '@/types'
 import { getBackgroundFilterCss } from '@/components/backgroundFilter'
-import { getFontFamily } from '@/lib/fonts'
+import { getFontFamily, forceLoadFont } from '@/lib/fonts'
 import { resolveProjectSettings } from '@/lib/projectSettings'
 import {
   EXPORT_SLIDE_PADDING,
@@ -179,10 +179,11 @@ function getDefaultMetrics(textStyle: ReturnType<typeof resolveTextStyle>): Slid
 export async function measureSlideLayout(
   slide: Slide,
   imageDataUrl: string,
-  projectSettings?: ProjectSettings
+  projectSettings?: ProjectSettings,
+  fontSizeOverride?: number
 ): Promise<SlideLayoutMetrics> {
   if (slide.isCover) {
-    return measureCoverSlideLayout(slide, imageDataUrl, projectSettings)
+    return measureCoverSlideLayout(slide, imageDataUrl, projectSettings, fontSizeOverride)
   }
 
   const settings = resolveProjectSettings(projectSettings)
@@ -191,7 +192,8 @@ export async function measureSlideLayout(
     slide,
     imageDataUrl,
     { width: WIDTH, height: HEIGHT },
-    settings
+    settings,
+    fontSizeOverride
   )
 
   const temp = document.createElement('div')
@@ -214,6 +216,7 @@ export async function measureSlideLayout(
     ? parseFloat(textEls[0].style.fontSize) || textStyle.fontSize
     : textStyle.fontSize
 
+  await forceLoadFont(textStyle.fontFamily || 'poppins', textStyle.fontWeight || 900)
   await document.fonts.ready
 
   const canvas = document.createElement('canvas')
@@ -274,7 +277,8 @@ export async function measureSlideLayout(
 async function measureCoverSlideLayout(
   slide: Slide,
   imageDataUrl: string,
-  projectSettings?: ProjectSettings
+  projectSettings?: ProjectSettings,
+  fontSizeOverride?: number
 ): Promise<SlideLayoutMetrics> {
   const settings = resolveProjectSettings(projectSettings)
   const textStyle = resolveTextStyle(slide.textStyle)
@@ -282,7 +286,8 @@ async function measureCoverSlideLayout(
     slide,
     imageDataUrl,
     { width: WIDTH, height: HEIGHT },
-    settings
+    settings,
+    fontSizeOverride
   )
 
   const temp = document.createElement('div')
@@ -307,6 +312,7 @@ async function measureCoverSlideLayout(
     ? parseFloat(subtitleEl.style.fontSize) || Math.max(28, Math.round(fontSize * 0.48))
     : 0
 
+  await forceLoadFont(textStyle.fontFamily || 'poppins', textStyle.fontWeight || 900)
   await document.fonts.ready
 
   const canvas = document.createElement('canvas')
@@ -497,9 +503,10 @@ export function drawSlideFrame(
       const lx = getLineX(lineWidth)
       
       const rx = lx - padX
-      const ry = y - padY
+      const offsetY = (layout.lineHeightPx - layout.fontSize) / 2
+      const ry = y + offsetY - padY
       const rw = lineWidth + 2 * padX
-      const rh = layout.lineHeightPx + 2 * padY
+      const rh = layout.fontSize + 2 * padY
 
       ctx.save()
       roundRect(ctx, rx, ry, rw, rh, layout.boxRadius)
@@ -543,18 +550,20 @@ export function drawSlideFrame(
 
     ctx.save()
     ctx.textAlign = 'left' // absolute left positioning using calculated x to avoid double alignment shift
+    const offsetY = (layout.lineHeightPx - layout.fontSize) / 2
+    const drawY = y + offsetY
     if (layout.letterSpacing !== 0) {
       const lineWidth = getLineWidth(line)
       let x = getLineX(lineWidth)
       for (let i = 0; i < line.length; i++) {
         const ch = line[i]
-        ctx.fillText(ch, x, y)
+        ctx.fillText(ch, x, drawY)
         x += ctx.measureText(ch).width + (i < line.length - 1 ? layout.letterSpacing : 0)
       }
     } else {
       const lineWidth = getLineWidth(line)
       const x = getLineX(lineWidth)
-      ctx.fillText(line, x, y)
+      ctx.fillText(line, x, drawY)
     }
     ctx.restore()
 
@@ -747,6 +756,7 @@ export async function buildPrompterLayout(
   const viewportBottom = HEIGHT - PROMPTER_VIEWPORT_MARGIN
   const viewportHeight = viewportBottom - viewportTop
 
+  await forceLoadFont(textStyle.fontFamily || 'poppins', textStyle.fontWeight || 900)
   await document.fonts.ready
 
   const canvas = document.createElement('canvas')
