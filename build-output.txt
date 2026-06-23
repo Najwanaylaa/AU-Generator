@@ -1,0 +1,32 @@
+﻿  Ôû▓ Next.js 15.0.0
+
+   Creating an optimized production build ...
+ Ô£ô Compiled successfully
+   Linting and checking validity of types ...
+node.exe : Failed to compile.
+At line:1 char:56
++ ... Generator"; & 'C:\Program Files\nodejs\node.exe' '.\node_modules\next ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Failed to compile.:String) [], Re 
+   moteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+./components/FullscreenPreview.tsx:4:30
+Type error: Could not find a declaration file for module 'react-dom'. 
+'C:/Users/USER/Documents/SlideGenerator/node_modules/react-dom/index.js' 
+implicitly has an 'any' type.
+  Try `npm i --save-dev @types/react-dom` if it exists or add a new 
+declaration (.d.ts) file containing `declare module 'react-dom';`
+
+[0m [90m 2 |[39m[0m
+[0m [90m 3 |[39m [36mimport[39m [33mReact[39m[33m,[39m { useEffect } 
+[36mfrom[39m [32m'react'[39m[0m
+[0m[31m[1m>[22m[39m[90m 4 |[39m [36mimport[39m { createPortal } 
+[36mfrom[39m [32m'react-dom'[39m[0m
+[0m [90m   |[39m                              [31m[1m^[22m[39m[0m
+[0m [90m 5 |[39m [36mimport[39m { [33mSlide[39m[33m,[39m 
+[33mProjectSettings[39m } [36mfrom[39m [32m'@/types'[39m[0m
+[0m [90m 6 |[39m [36mimport[39m [33mSlidePreview[39m [36mfrom[39m 
+[32m'./SlidePreview'[39m[0m
+[0m [90m 7 |[39m[0m
