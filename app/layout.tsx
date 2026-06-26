@@ -5,7 +5,12 @@ import { fontVariableClassName } from '@/lib/fonts'
 
 export const metadata = {
   title: 'AU Generator',
-  description: 'Create story slides from text and images'
+  description: 'Create story slides from text and images',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/logo.jpeg',
+    apple: '/logo.jpeg',
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -22,10 +27,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-40 border-b border-slate-800/80 bg-slate-950/90 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-4">
             <div className="min-w-0 flex-1">
-              <p className="text-xs font-medium text-cyan-400 mb-0.5">Story → Slide</p>
-              <h1 className="text-lg sm:text-xl font-bold text-white truncate">
-                AU Generator
-              </h1>
+              <Link href="/" className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity">
+                <img
+                  src="/logo.jpeg"
+                  alt="AU Generator Logo"
+                  className="w-10 h-10 rounded-xl object-cover border border-slate-800/80 shadow-md"
+                />
+                <div>
+                  <p className="text-xs font-medium text-cyan-400 mb-0.5">Story → Slide</p>
+                  <h1 className="text-lg sm:text-xl font-bold text-white leading-none">
+                    AU Generator
+                  </h1>
+                </div>
+              </Link>
             </div>
 
             {/* Navigation removed per request; keep header minimal */}
