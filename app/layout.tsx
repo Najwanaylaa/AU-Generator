@@ -8,8 +8,8 @@ export const metadata = {
   description: 'Create story slides from text and images',
   manifest: '/manifest.json',
   icons: {
-    icon: '/logo.jpeg',
-    apple: '/logo.jpeg',
+    icon: '/logo.png',
+    apple: '/logo.png',
   },
 }
 
@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="min-w-0 flex-1">
               <Link href="/" className="inline-flex items-center gap-3 hover:opacity-90 transition-opacity">
                 <img
-                  src="/logo.jpeg"
+                  src="/logo.png"
                   alt="AU Generator Logo"
                   className="w-10 h-10 rounded-xl object-cover border border-slate-800/80 shadow-md"
                 />

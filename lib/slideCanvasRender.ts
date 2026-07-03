@@ -330,12 +330,12 @@ async function measureCoverSlideLayout(
 
   let subtitleLines: string[] = []
   if (slide.coverSubtitle?.trim()) {
-    ctx.font = `${Math.max(400, textStyle.fontWeight - 200)} ${subtitleFontSize}px ${getFontFamily(textStyle.fontFamily)}`
+    ctx.font = `${textStyle.fontWeight} ${subtitleFontSize}px ${getFontFamily(textStyle.fontFamily)}`
     subtitleLines = wrapTextLines(ctx, slide.coverSubtitle.trim(), wrapWidth)
   }
 
   const titleLineHeight = fontSize * Math.max(1.1, textStyle.lineHeight * 0.85)
-  const subtitleLineHeight = subtitleFontSize * 1.35
+  const subtitleLineHeight = subtitleFontSize * textStyle.lineHeight
   const gap = subtitleLines.length > 0 ? 24 : 0
   const textBlockHeight =
     titleLines.length * titleLineHeight +
@@ -659,9 +659,9 @@ function drawCoverSlideFrame(
 
   if (subtitleLines.length > 0) {
     y += gap
-    ctx.font = `${Math.max(400, layout.fontWeight - 200)} ${subtitleFontSize}px ${layout.fontFamily}`
-    ctx.globalAlpha = Math.min(1, layout.opacity * 0.92)
-    const subtitleSpacing = Math.max(0, layout.letterSpacing)
+    ctx.font = `${layout.fontWeight} ${subtitleFontSize}px ${layout.fontFamily}`
+    ctx.globalAlpha = layout.opacity
+    const subtitleSpacing = layout.letterSpacing
     for (const line of subtitleLines) {
       drawTextLine(line, y, subtitleSpacing)
       y += subtitleLineHeight

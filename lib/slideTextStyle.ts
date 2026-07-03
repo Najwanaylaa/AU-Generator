@@ -283,3 +283,98 @@ export function buildParagraphTextCss(style?: TextStyle, fontSizeOverride?: numb
   return css
 }
 
+export function buildCoverTextCss(style?: TextStyle, fontSizeOverride?: number): string {
+  const key = `coverTextCss-${getStyleCacheKey(style)}-${fontSizeOverride ?? 'default'}`
+  if (cssCache.has(key)) return cssCache.get(key)!
+
+  const textStyle = resolveTextStyle(style)
+  const fontSize = fontSizeOverride ?? textStyle.fontSize
+  const isTransparent = !style?.boxColor || style.boxColor === 'transparent' || style.boxOpacity === 0
+  const shadow = textStyle.textShadow
+    ? isTransparent
+      ? '0 2px 12px rgba(0,0,0,0.5), 0 1px 6px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3)'
+      : '0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)'
+    : 'none'
+
+  const bg = isTransparent ? 'transparent' : convertToRgba(textStyle.boxColor ?? '', textStyle.boxOpacity)
+  const spread = textStyle.boxSpread ?? 0
+  const padX = textStyle.boxPadding ? Math.round(textStyle.boxPadding * 0.9) : Math.max(2, Math.round(fontSize * 0.1))
+  const padY = textStyle.boxPadding ? Math.round(textStyle.boxPadding * 0.3) : Math.max(2, Math.round(fontSize * 0.08))
+  const radiusVal = Math.max(0, textStyle.boxRadius ?? 20)
+
+  const css = [
+    `color:${textStyle.color}`,
+    `font-size:${fontSize}px`,
+    `font-weight:${textStyle.fontWeight}`,
+    `font-family:${getFontFamily(textStyle.fontFamily)}`,
+    `line-height:${Math.max(1.1, textStyle.lineHeight * 0.85)}`,
+    `letter-spacing:${textStyle.letterSpacing}px`,
+    `opacity:${textStyle.opacity}`,
+    `text-align:${textStyle.textAlign}`,
+    'margin:0',
+    'word-break:break-word',
+    `text-shadow:${shadow}`,
+    `-webkit-text-stroke:${isTransparent ? '1px rgba(0,0,0,0.8)' : 'none'}`,
+    `background:${bg}`,
+    `padding:${padY}px ${padX}px`,
+    `border-radius:${radiusVal}px`,
+    `box-shadow:${spread > 0 ? `0 0 ${spread}px rgba(0,0,0,0.18)` : 'none'}`,
+    `border:${isTransparent ? 'none' : '1px solid rgba(255,255,255,0.15)'}`,
+    'box-decoration-break:clone',
+    `-webkit-box-decoration-break:clone`,
+    `backdrop-filter:${textStyle.boxBlur > 0 ? `blur(${textStyle.boxBlur}px)` : 'none'}`,
+    `-webkit-backdrop-filter:${textStyle.boxBlur > 0 ? `blur(${textStyle.boxBlur}px)` : 'none'}`,
+  ].join(';')
+
+  cssCache.set(key, css)
+  return css
+}
+
+export function buildCoverSubtitleCss(titleFontSize: number, style?: TextStyle): string {
+  const key = `coverSubtitleCss-${getStyleCacheKey(style)}-${titleFontSize}`
+  if (cssCache.has(key)) return cssCache.get(key)!
+
+  const textStyle = resolveTextStyle(style)
+  const isTransparent = !style?.boxColor || style.boxColor === 'transparent' || style.boxOpacity === 0
+  const shadow = textStyle.textShadow
+    ? isTransparent
+      ? '0 2px 12px rgba(0,0,0,0.5), 0 1px 6px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3)'
+      : '0 2px 8px rgba(0,0,0,0.08), 0 1px 3px rgba(0,0,0,0.06)'
+    : 'none'
+
+  const bg = isTransparent ? 'transparent' : convertToRgba(textStyle.boxColor ?? '', textStyle.boxOpacity)
+  const spread = textStyle.boxSpread ?? 0
+  const padX = textStyle.boxPadding ? Math.round(textStyle.boxPadding * 0.9) : Math.max(2, Math.round(textStyle.fontSize * 0.1))
+  const padY = textStyle.boxPadding ? Math.round(textStyle.boxPadding * 0.3) : Math.max(2, Math.round(textStyle.fontSize * 0.08))
+  const radiusVal = Math.max(0, textStyle.boxRadius ?? 20)
+
+  const css = [
+    `color:${textStyle.color}`,
+    `font-size:${textStyle.fontSize}px`,
+    `font-weight:${textStyle.fontWeight}`,
+    `font-family:${getFontFamily(textStyle.fontFamily)}`,
+    `line-height:${textStyle.lineHeight}`,
+    `letter-spacing:${textStyle.letterSpacing}px`,
+    `opacity:${textStyle.opacity}`,
+    `text-align:${textStyle.textAlign}`,
+    'margin:0',
+    'word-break:break-word',
+    `text-shadow:${shadow}`,
+    `-webkit-text-stroke:${isTransparent ? '1px rgba(0,0,0,0.8)' : 'none'}`,
+    `background:${bg}`,
+    `padding:${padY}px ${padX}px`,
+    `border-radius:${radiusVal}px`,
+    `box-shadow:${spread > 0 ? `0 0 ${spread}px rgba(0,0,0,0.18)` : 'none'}`,
+    `border:${isTransparent ? 'none' : '1px solid rgba(255,255,255,0.15)'}`,
+    'display:inline-block',
+    'max-width:90%',
+    'box-decoration-break:clone',
+    `-webkit-box-decoration-break:clone`,
+    `backdrop-filter:${textStyle.boxBlur > 0 ? `blur(${textStyle.boxBlur}px)` : 'none'}`,
+    `-webkit-backdrop-filter:${textStyle.boxBlur > 0 ? `blur(${textStyle.boxBlur}px)` : 'none'}`,
+  ].join(';')
+
+  cssCache.set(key, css)
+  return css
+}
+

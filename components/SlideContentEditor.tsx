@@ -5,6 +5,8 @@ import { Slide, ProjectSettings } from '@/types'
 import { MAX_IMAGES } from '@/lib/imageUtils'
 import { resolveProjectSettings } from '@/lib/projectSettings'
 import { clampTextToMaxChars } from '@/lib/storyParser'
+import { getFontFamily } from '@/lib/fonts'
+import { resolveTextStyle } from '@/lib/slideTextStyle'
 
 interface SlideContentEditorProps {
   slide: Slide
@@ -46,6 +48,8 @@ export default function SlideContentEditor({
   const settings = resolveProjectSettings(projectSettings)
   const maxChars = settings.maxCharsPerSlide
   const isCover = slide.isCover
+  const textStyle = resolveTextStyle(slide.textStyle)
+  const currentFontFamily = getFontFamily(textStyle.fontFamily)
 
   return (
     <div className="space-y-4">
@@ -63,6 +67,7 @@ export default function SlideContentEditor({
               placeholder="Enter story title..."
               className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700 rounded-lg text-sm text-slate-100
                 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all hover:border-slate-600"
+              style={{ fontFamily: currentFontFamily }}
             />
           </div>
 
@@ -70,14 +75,15 @@ export default function SlideContentEditor({
             <label htmlFor="cover-subtitle-edit" className="text-xs font-semibold text-slate-300 uppercase tracking-wide">
               Subtitle / Author
             </label>
-            <input
+            <textarea
               id="cover-subtitle-edit"
-              type="text"
               value={slide.coverSubtitle ?? ''}
               onChange={(e) => onCoverSubtitleChange?.(e.target.value)}
               placeholder="Enter subtitle or author name..."
-              className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700 rounded-lg text-sm text-slate-100
+              rows={3}
+              className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700 rounded-lg text-sm text-slate-100 resize-y leading-relaxed
                 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all hover:border-slate-600"
+              style={{ minHeight: '80px', fontFamily: currentFontFamily }}
             />
             <p className="text-xs text-slate-500">Leave empty to show only the title on the cover slide.</p>
           </div>
@@ -95,7 +101,7 @@ export default function SlideContentEditor({
           placeholder="Enter slide text…"
           className="w-full px-3 py-2.5 bg-slate-800/60 border border-slate-700 rounded-lg text-sm text-slate-100 resize-none leading-relaxed
             focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/30 transition-all hover:border-slate-600"
-          style={{ minHeight: '120px' }}
+          style={{ minHeight: '120px', fontFamily: currentFontFamily }}
         />
         <p className="text-xs text-slate-500">
           {slide.text.length} / {maxChars} characters

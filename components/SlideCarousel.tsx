@@ -235,7 +235,7 @@ export default function SlideCarousel({
           onCoverSubtitleChange={(coverSubtitle) =>
             onSlidesUpdate(
               updateSlideAt(slides, currentSlideIndex, {
-                coverSubtitle: coverSubtitle.trim() || undefined,
+                coverSubtitle: coverSubtitle || undefined,
               })
             )
           }

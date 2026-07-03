@@ -204,12 +204,12 @@ export default function StoryUploadForm({ onGenerate, isLoading = false }: Story
           <label htmlFor="storySubtitle" className="text-sm font-medium text-slate-300">
             Subtitle / Author
           </label>
-          <input
+          <textarea
             id="storySubtitle"
-            type="text"
             placeholder="Enter subtitle or author name..."
             {...register('storySubtitle')}
-            className="input-field"
+            rows={2}
+            className="input-field resize-y min-h-[60px] leading-relaxed"
           />
         </div>
 

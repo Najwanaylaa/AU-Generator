@@ -16,6 +16,8 @@ import {
   buildParagraphTextCss,
   getSlideFlexAlign,
   resolveTextStyle,
+  buildCoverTextCss,
+  buildCoverSubtitleCss,
 } from '@/lib/slideTextStyle'
 import { getFontFamily, forceLoadFont, getEmbeddedFontCSS, GOOGLE_FONTS_MAP, FontId } from '@/lib/fonts'
 
@@ -128,7 +130,7 @@ export function fitExportSlideText(
 
 function fitCoverSlideText(root: HTMLDivElement, slide: Slide): number {
   const titleEls = Array.from(root.querySelectorAll('[data-cover-title]')) as HTMLElement[]
-  const subtitleEl = root.querySelector('[data-cover-subtitle]') as HTMLElement | null
+  const subtitleEls = Array.from(root.querySelectorAll('[data-cover-subtitle]')) as HTMLElement[]
   if (!titleEls.length) return 72
 
   const textStyle = resolveTextStyle(slide.textStyle)
@@ -150,54 +152,18 @@ function fitCoverSlideText(root: HTMLDivElement, slide: Slide): number {
     })
   }
 
-  if (subtitleEl) {
-    subtitleEl.style.fontSize = `${Math.max(28, Math.round(titleSize * 0.48))}px`
-  }
+  const baseTitleSize = Math.min(96, Math.max(48, textStyle.fontSize))
+  const subtitleScale = titleSize / baseTitleSize
+  const subtitleSize = Math.max(20, Math.round(textStyle.fontSize * subtitleScale))
+
+  subtitleEls.forEach((el) => {
+    el.style.fontSize = `${subtitleSize}px`
+  })
 
   return titleSize
 }
 
-function buildCoverTextCss(style?: import('@/types').TextStyle, fontSizeOverride?: number): string {
-  const textStyle = resolveTextStyle(style)
-  const fontSize = fontSizeOverride ?? textStyle.fontSize
-  const shadow = '0 2px 12px rgba(0,0,0,0.85), 0 1px 4px rgba(0,0,0,0.7)'
 
-  return [
-    `color:${textStyle.color}`,
-    `font-size:${fontSize}px`,
-    `font-weight:${textStyle.fontWeight}`,
-    `font-family:${getFontFamily(textStyle.fontFamily)}`,
-    `line-height:${Math.max(1.1, textStyle.lineHeight * 0.85)}`,
-    `letter-spacing:${textStyle.letterSpacing}px`,
-    `opacity:${textStyle.opacity}`,
-    `text-align:${textStyle.textAlign}`,
-    'margin:0',
-    'word-break:break-word',
-    `text-shadow:${shadow}`,
-    'width:100%',
-  ].join(';')
-}
-
-function buildCoverSubtitleCss(titleFontSize: number, style?: import('@/types').TextStyle): string {
-  const textStyle = resolveTextStyle(style)
-  const fontSize = Math.max(28, Math.round(titleFontSize * 0.48))
-  const shadow = '0 2px 10px rgba(0,0,0,0.8), 0 1px 3px rgba(0,0,0,0.6)'
-
-  return [
-    `color:${textStyle.color}`,
-    `font-size:${fontSize}px`,
-    `font-weight:${Math.max(400, textStyle.fontWeight - 200)}`,
-    `font-family:${getFontFamily(textStyle.fontFamily)}`,
-    'line-height:1.35',
-    `letter-spacing:${Math.max(0, textStyle.letterSpacing)}px`,
-    `opacity:${Math.min(1, textStyle.opacity * 0.92)}`,
-    `text-align:${textStyle.textAlign}`,
-    'margin:0',
-    'word-break:break-word',
-    `text-shadow:${shadow}`,
-    'width:100%',
-  ].join(';');
-}
 
 /**
  * After font loading and size fitting, "bake" the measured text element widths.
@@ -397,7 +363,7 @@ export async function buildExportSlideElement(
       'flex-direction:column',
       `align-items:${coverAlignItems}`,
       'justify-content:center',
-      'gap:8px',
+      'gap:24px',
       'width:100%',
       'max-width:920px',
       'margin:0 auto',
@@ -408,33 +374,95 @@ export async function buildExportSlideElement(
     ].join(';')
 
     const titleElement = document.createElement('div')
-    titleElement.style.cssText = `display:flex;flex-direction:column;gap:4px;width:100%;align-items:${coverAlignItems}`
+    titleElement.style.cssText = `display:flex;flex-direction:column;gap:${Math.max(6, Math.round(titleFontSize * 0.15))}px;width:100%;align-items:${coverAlignItems}`
     
     // Split title into paragraphs
-    const titleParagraphs = slide.text.split(/\n+/).filter(p => p.trim().length > 0)
-    titleParagraphs.forEach(para => {
-      const titleP = document.createElement('p')
-      titleP.setAttribute('data-slide-text', '')
-      titleP.setAttribute('data-cover-title', '')
-      
-      const escaped = escapeHtml(para.trim())
-      const html = escaped.replace(/\n/g, '<br>')
-      titleP.innerHTML = html
-      titleP.style.cssText = `${buildCoverTextCss(textStyle, titleFontSize)};display:inline-block;max-width:100%;`
-      
-      titleElement.appendChild(titleP)
+    const titleLines = slide.text.split(/\r?\n/)
+    const titleParagraphs: string[][] = []
+    let currentTitlePara: string[] = []
+    titleLines.forEach((line) => {
+      const trimmed = line.trim()
+      if (trimmed.length === 0) {
+        if (currentTitlePara.length > 0) {
+          titleParagraphs.push(currentTitlePara)
+          currentTitlePara = []
+        }
+        titleParagraphs.push([])
+      } else {
+        currentTitlePara.push(trimmed)
+      }
+    })
+    if (currentTitlePara.length > 0) titleParagraphs.push(currentTitlePara)
+
+    titleParagraphs.forEach((para) => {
+      if (para.length === 0) {
+        const spacer = document.createElement('div')
+        spacer.style.cssText = `height:${Math.round(titleFontSize * 0.65)}px;width:100%;`
+        titleElement.appendChild(spacer)
+        return
+      }
+
+      const textElement = document.createElement('div')
+      textElement.setAttribute('data-slide-text', '')
+      textElement.style.cssText = buildParagraphBoxCss(textStyle, titleFontSize)
+
+      const textSpan = document.createElement('span')
+      textSpan.setAttribute('data-slide-text-content', '')
+      textSpan.setAttribute('data-cover-title', '')
+      textSpan.innerHTML = para.map(escapeHtml).join('\n')
+      textSpan.style.cssText = buildParagraphTextCss(textStyle, titleFontSize)
+
+      textElement.appendChild(textSpan)
+      titleElement.appendChild(textElement)
     })
 
     textContainer.appendChild(titleElement)
 
     if (slide.coverSubtitle?.trim()) {
-      const subtitleElement = document.createElement('p')
-      subtitleElement.setAttribute('data-cover-subtitle', '')
-      
-      const escaped = escapeHtml(slide.coverSubtitle.trim())
-      const html = escaped.replace(/\n/g, '<br>')
-      subtitleElement.innerHTML = html
-      subtitleElement.style.cssText = buildCoverSubtitleCss(titleFontSize, textStyle)
+      const subtitleElement = document.createElement('div')
+      const subtitleFontSize = textStyle.fontSize
+      subtitleElement.style.cssText = `display:flex;flex-direction:column;gap:${Math.max(6, Math.round(subtitleFontSize * 0.15))}px;width:100%;align-items:${coverAlignItems}`
+
+      // Split subtitle into paragraphs
+      const subtitleLines = slide.coverSubtitle.split(/\r?\n/)
+      const subtitleParagraphs: string[][] = []
+      let currentSubPara: string[] = []
+      subtitleLines.forEach((line) => {
+        const trimmed = line.trim()
+        if (trimmed.length === 0) {
+          if (currentSubPara.length > 0) {
+            subtitleParagraphs.push(currentSubPara)
+            currentSubPara = []
+          }
+          subtitleParagraphs.push([])
+        } else {
+          currentSubPara.push(trimmed)
+        }
+      })
+      if (currentSubPara.length > 0) subtitleParagraphs.push(currentSubPara)
+
+      subtitleParagraphs.forEach((para) => {
+        if (para.length === 0) {
+          const spacer = document.createElement('div')
+          spacer.style.cssText = `height:${Math.round(subtitleFontSize * 0.65)}px;width:100%;`
+          subtitleElement.appendChild(spacer)
+          return
+        }
+
+        const textElement = document.createElement('div')
+        textElement.setAttribute('data-slide-text', '')
+        textElement.style.cssText = buildParagraphBoxCss(textStyle, subtitleFontSize)
+
+        const textSpan = document.createElement('span')
+        textSpan.setAttribute('data-slide-text-content', '')
+        textSpan.setAttribute('data-cover-subtitle', '')
+        textSpan.innerHTML = para.map(escapeHtml).join('\n')
+        textSpan.style.cssText = buildParagraphTextCss(textStyle, subtitleFontSize)
+
+        textElement.appendChild(textSpan)
+        subtitleElement.appendChild(textElement)
+      })
+
       textContainer.appendChild(subtitleElement)
     }
 
