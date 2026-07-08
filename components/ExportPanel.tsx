@@ -68,6 +68,9 @@ export default function ExportPanel({
   const [fileNames, setFileNames] = useState<string[]>(() =>
     slides.map((_, i) => defaultSlideFileName(i))
   )
+  const [exportMethod, setExportMethod] = useState<'folder' | 'sequential'>(
+    canSavePngsToFolder() ? 'folder' : 'sequential'
+  )
 
   const settings = resolveProjectSettings(projectSettings)
   const router = useRouter()
@@ -187,6 +190,51 @@ export default function ExportPanel({
     }
   }
 
+  const handleDownloadSequentially = async () => {
+    setIsExporting(true)
+    setExportError('')
+    const totalSteps = slides.length + 2
+
+    try {
+      reportProgress(0, totalSteps, 'Preparing images…')
+      const imageDataUrls = await preloadImageDataUrls(imageUrls)
+
+      const images = await renderAllSlidePngs(imageDataUrls, (step, _total, label) => {
+        reportProgress(step, totalSteps, label)
+      })
+
+      // Download sequentially with a delay of 1000ms
+      for (let i = 0; i < images.length; i++) {
+        reportProgress(
+          slides.length + 1,
+          totalSteps,
+          `Downloading slide ${i + 1} of ${images.length}…`
+        )
+        const item = images[i]
+        const name = item.fileName.endsWith('.png') ? item.fileName : `${item.fileName}.png`
+        
+        await downloadImage(item.dataUrl, name)
+        
+        if (i < images.length - 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1000))
+        }
+      }
+
+      setProgress({ percent: 100, label: 'Done' })
+      setExportStatus(`${images.length} slides downloaded sequentially.`)
+      setTimeout(() => {
+        setExportStatus('')
+        setProgress(null)
+      }, 5000)
+    } catch (error) {
+      console.error('Export error:', error)
+      setExportError(error instanceof Error ? error.message : 'Export failed')
+      setExportStatus('')
+      setProgress(null)
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleExportCurrentSlide = async () => {
     setIsExporting(true)
@@ -224,7 +272,11 @@ export default function ExportPanel({
   }
 
   const handleExport = () => {
-    handleExportPNG()
+    if (exportMethod === 'folder') {
+      handleExportPNG()
+    } else {
+      handleDownloadSequentially()
+    }
   }
 
   const updateFileName = (index: number, value: string) => {
@@ -240,31 +292,67 @@ export default function ExportPanel({
       <div>
         <h3 id="export-heading" className="section-title">Export</h3>
         <p className="section-desc mt-1">
-          Save PNGs to a folder
+          Save PNGs of your slides
         </p>
       </div>
 
       {selectedFormat === 'png' && (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            disabled={!canSavePngsToFolder()}
+            onClick={() => setExportMethod('folder')}
+            className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-0.5 disabled:opacity-40
+              ${exportMethod === 'folder'
+                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-900/30'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+          >
+            <span>Simpan ke Folder</span>
+            <span className="text-[9px] opacity-75 font-normal">Desktop Chrome/Edge</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setExportMethod('sequential')}
+            className={`min-h-[44px] px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all flex flex-col items-center justify-center gap-0.5
+              ${exportMethod === 'sequential'
+                ? 'bg-cyan-600 border-cyan-500 text-white shadow-lg shadow-cyan-900/30'
+                : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+              }`}
+          >
+            <span>Unduh Berurutan (HP / TikTok)</span>
+            <span className="text-[9px] opacity-75 font-normal">Jeda 1s agar urut di galeri</span>
+          </button>
+        </div>
+      )}
+
+      {selectedFormat === 'png' && (
         <div className="space-y-4 rounded-xl border border-slate-800 bg-slate-900/40 p-4">
-          <div>
-            <label htmlFor="export-folder-name" className="label">
-              Folder name
-            </label>
-            <input
-              id="export-folder-name"
-              type="text"
-              value={folderName}
-              onChange={(e) => setFolderName(e.target.value)}
-              disabled={isExporting}
-              className="input-field text-sm"
-              placeholder="story-slides-2026-06-05"
-            />
-            <p className="text-xs text-slate-500 mt-1.5">
-              {canSavePngsToFolder()
-                ? 'On export, pick a folder on your computer. This subfolder is created automatically with all PNGs.'
-                : 'This browser cannot save to a folder. Use the latest Chrome or Edge.'}
-            </p>
-          </div>
+          {exportMethod === 'folder' ? (
+            <div>
+              <label htmlFor="export-folder-name" className="label">
+                Folder name
+              </label>
+              <input
+                id="export-folder-name"
+                type="text"
+                value={folderName}
+                onChange={(e) => setFolderName(e.target.value)}
+                disabled={isExporting}
+                className="input-field text-sm"
+                placeholder="story-slides-2026-06-05"
+              />
+              <p className="text-xs text-slate-500 mt-1.5">
+                On export, pick a folder on your computer. This subfolder is created automatically with all PNGs.
+              </p>
+            </div>
+          ) : (
+            <div>
+              <p className="text-xs text-slate-400 bg-slate-800/40 p-3 rounded-lg border border-slate-750 leading-relaxed">
+                📢 <strong className="text-cyan-400 font-semibold">Mode Unduh Berurutan:</strong> File gambar slide akan diunduh secara bergantian dengan jeda 1 detik tiap slide. Jeda ini memastikan waktu pembuatan file terurut secara kronologis di memori HP Anda, sehingga di galeri HP/TikTok slide akan muncul berurutan (dari slide pertama sampai terakhir).
+              </p>
+            </div>
+          )}
 
           <div>
             <p className="label">File names</p>
@@ -292,8 +380,6 @@ export default function ExportPanel({
         <li><span className="text-slate-500">Est. size:</span> ~{formatFileSize(slides.length * 300000)}</li>
       </ul>
 
-
-
       {isExporting && progress && (
         <ExportProgress percent={progress.percent} label={progress.label} />
       )}
@@ -305,7 +391,11 @@ export default function ExportPanel({
           disabled={isExporting || slides.length === 0}
           className="btn-primary flex-1 min-h-[48px] text-base"
         >
-          {isExporting ? 'Exporting…' : 'Save to folder'}
+          {isExporting 
+            ? 'Exporting…' 
+            : exportMethod === 'folder' 
+              ? 'Save to folder' 
+              : 'Unduh Berurutan'}
         </button>
         <button
           type="button"
