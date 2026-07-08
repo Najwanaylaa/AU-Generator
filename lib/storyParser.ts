@@ -69,7 +69,7 @@ function splitTextIntoSentences(text: string): SentenceChunk[] {
   const cleaned = text.trim().replace(/\s+/g, ' ')
   if (!cleaned) return []
 
-  const sentencePattern = /[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g
+  const sentencePattern = /[^.!?]+[.!?]+[\])"'”’*_~]*(?:\s+|$)|[^.!?]+$/g
   const matches = cleaned.match(sentencePattern) || []
 
   return matches

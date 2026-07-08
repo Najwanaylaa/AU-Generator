@@ -154,7 +154,7 @@ function fitCoverSlideText(root: HTMLDivElement, slide: Slide): number {
 
   const baseTitleSize = Math.min(96, Math.max(48, textStyle.fontSize))
   const subtitleScale = titleSize / baseTitleSize
-  const subtitleSize = Math.max(20, Math.round(textStyle.fontSize * subtitleScale))
+  const subtitleSize = Math.max(20, Math.round((textStyle.fontSize * 0.48) * subtitleScale))
 
   subtitleEls.forEach((el) => {
     el.style.fontSize = `${subtitleSize}px`
@@ -420,7 +420,7 @@ export async function buildExportSlideElement(
 
     if (slide.coverSubtitle?.trim()) {
       const subtitleElement = document.createElement('div')
-      const subtitleFontSize = textStyle.fontSize
+      const subtitleFontSize = Math.max(20, Math.round(textStyle.fontSize * 0.48))
       subtitleElement.style.cssText = `display:flex;flex-direction:column;gap:${Math.max(6, Math.round(subtitleFontSize * 0.15))}px;width:100%;align-items:${coverAlignItems}`
 
       // Split subtitle into paragraphs
