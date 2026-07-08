@@ -66,13 +66,75 @@ function countChunkedSlideLength(currentLength: number, chunk: SentenceChunk): n
 }
 
 function splitTextIntoSentences(text: string): SentenceChunk[] {
-  const cleaned = text.trim().replace(/\s+/g, ' ')
-  if (!cleaned) return []
+  if (!text) return []
 
-  const sentencePattern = /[^.!?]+[.!?]+[\])"'”’*_~]*(?:\s+|$)|[^.!?]+$/g
-  const matches = cleaned.match(sentencePattern) || []
+  const sentences: string[] = []
+  let current = ''
 
-  return matches
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i]
+    current += char
+
+    if (char === '.' || char === '!' || char === '?') {
+      // Look ahead to consume trailing brackets/quotes
+      let j = i + 1
+      while (j < text.length && /[\])"'”’*_~]/.test(text[j])) {
+        current += text[j]
+        i = j
+        j++
+      }
+
+      // Check if we should split
+      const nextChar = text[i + 1]
+      const isNextDotPunct = nextChar && /[.!?]/.test(nextChar)
+      const isNextDigit = nextChar && /\d/.test(nextChar)
+
+      if (!isNextDotPunct && !isNextDigit) {
+        sentences.push(current)
+        current = ''
+      }
+    }
+  }
+
+  if (current) {
+    sentences.push(current)
+  }
+
+  const mergedSentences: string[] = []
+  let currentMerged = ''
+  let inDoubleQuote = false
+  let inSingleQuote = false
+
+  for (const sentence of sentences) {
+    currentMerged = currentMerged ? currentMerged + sentence : sentence
+
+    // Track quote state
+    for (let i = 0; i < sentence.length; i++) {
+      const char = sentence[i]
+      if (char === '"') {
+        inDoubleQuote = !inDoubleQuote
+      } else if (char === '“') {
+        inDoubleQuote = true
+      } else if (char === '”') {
+        inDoubleQuote = false
+      } else if (char === '‘') {
+        inSingleQuote = true
+      } else if (char === '’') {
+        inSingleQuote = false
+      }
+    }
+
+    if (!inDoubleQuote && !inSingleQuote) {
+      mergedSentences.push(currentMerged)
+      currentMerged = ''
+    }
+  }
+
+  if (currentMerged) {
+    mergedSentences.push(currentMerged)
+  }
+
+  return mergedSentences
     .map((sentence) => sentence.trim())
     .filter(Boolean)
     .map((sentence) => ({ text: sentence, paragraphBreakBefore: false }))
